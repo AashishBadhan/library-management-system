@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Settle Fine - Library{% endblock %}
+
+{% block content %}
+<div class="page-fade-in">
+  <div class="dashboard-section">
+    <div class="dashboard-card glass-effect" style="max-width:640px;margin:0 auto;">
+      <div class="card-header">
+        <h2 class="card-title"><i class="fas fa-credit-card"></i> Settle Fine</h2>
+      </div>
+      <div class="card-body">
+        <p class="page-subtitle">This demo will mark your outstanding fines as paid without a gateway.</p>
+        <form method="post" style="margin-top:1rem;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary btn-gradient">
+            <i class="fas fa-check"></i> Confirm Mark Paid
+          </button>
+          <a href="{% url 'my_books' %}" class="btn btn-secondary" style="margin-left:.5rem;">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends 'layouts/admin_base.html' %}
+{% block title %}Categories{% endblock %}
+{% block header_title %}<h1><i class="fas fa-tags"></i> Categories</h1>{% endblock %}
+{% block content %}
+<div class="dashboard-card">
+  <div class="card-header"><h2 class="card-title">Add Category</h2></div>
+  <div class="card-body">
+    <form method="post" action="{% url 'add_category' %}" style="display:flex;gap:.5rem;flex-wrap:wrap">
+      {% csrf_token %}
+      <input class="form-input" type="text" name="name" placeholder="Name" required>
+      <input class="form-input" type="text" name="description" placeholder="Description">
+      <button class="btn btn-primary" type="submit"><i class="fas fa-plus"></i> Add</button>
+    </form>
+  </div>
+</div>
+
+<div class="table-container glass-effect" style="margin-top:1rem">
+  <div class="table-responsive">
+    <table class="modern-table">
+      <thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for c in categories %}
+        <tr class="table-row">
+          <td>#{{ c.id }}</td>
+          <td>{{ c.name }}</td>
+          <td>{{ c.description }}</td>
+          <td>
+            <button class="btn btn-sm btn-outline" onclick="openEditCategoryModal({{ c.id }}, '{{ c.name|escapejs }}', '{{ c.description|escapejs }}')"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-danger" onclick="openDeleteCategoryModal({{ c.id }}, '{{ c.name|escapejs }}')"><i class="fas fa-trash"></i></button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4"><div class="empty-state"><i class="fas fa-tags"></i><p>No categories</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div id="editCategoryModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Edit Category</h3>
+      <button class="modal-close" onclick="closeEditCategoryModal()">&times;</button>
+    </div>
+    <form method="post" id="editCategoryForm">
+      {% csrf_token %}
+      <input type="text" name="name" id="edit_cat_name" placeholder="Name" required>
+      <input type="text" name="description" id="edit_cat_desc" placeholder="Description">
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn" onclick="closeEditCategoryModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Category Modal -->
+<div id="deleteCategoryModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Delete Category</h3>
+      <button class="modal-close" onclick="closeDeleteCategoryModal()">&times;</button>
+    </div>
+    <p>Are you sure you want to delete "<span id="delete_cat_name"></span>"?</p>
+    <form method="post" id="deleteCategoryForm">
+      {% csrf_token %}
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-danger">Delete</button>
+        <button type="button" class="btn" onclick="closeDeleteCategoryModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openEditCategoryModal(id, name, desc) {
+  document.getElementById('edit_cat_name').value = name;
+  document.getElementById('edit_cat_desc').value = desc || '';
+  document.getElementById('editCategoryForm').action = `/admin/categories/${id}/edit/`;
+  document.getElementById('editCategoryModal').style.display = 'flex';
+}
+function closeEditCategoryModal() {
+  document.getElementById('editCategoryModal').style.display = 'none';
+}
+function openDeleteCategoryModal(id, name) {
+  document.getElementById('delete_cat_name').textContent = name;
+  document.getElementById('deleteCategoryForm').action = `/admin/categories/${id}/delete/`;
+  document.getElementById('deleteCategoryModal').style.display = 'flex';
+}
+function closeDeleteCategoryModal() {
+  document.getElementById('deleteCategoryModal').style.display = 'none';
+}
+</script>
+{% endblock %}

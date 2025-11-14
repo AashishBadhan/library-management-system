@@ -1,0 +1,320 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Browse Books - Library Management System{% endblock %}
+
+{% block content %}
+<div class="books-page page-fade-in">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-content">
+            <h1 class="page-title">Browse Books</h1>
+            <p class="page-subtitle">Explore our extensive collection of {{ total_books }} books</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="toggleView()">
+                <i class="fas fa-th" id="viewIcon"></i>
+                <span id="viewText">Grid View</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="filters-section glass-effect">
+        <div class="filter-group">
+            <div class="filter-item">
+                <label><i class="fas fa-filter"></i> Category</label>
+                <select class="filter-select" id="categoryFilter">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"s" %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-item">
+                <label><i class="fas fa-sort"></i> Sort By</label>
+                <select class="filter-select" id="sortFilter">
+                    <option value="title">Title (A-Z)</option>
+                    <option value="-title">Title (Z-A)</option>
+                    <option value="author">Author (A-Z)</option>
+                    <option value="-created_at">Newest First</option>
+                    <option value="created_at">Oldest First</option>
+                </select>
+            </div>
+            
+            <div class="filter-item">
+                <label><i class="fas fa-check-circle"></i> Availability</label>
+                <select class="filter-select" id="availabilityFilter">
+                    <option value="">All Books</option>
+                    <option value="available">Available Only</option>
+                    <option value="unavailable">Unavailable</option>
+                </select>
+            </div>
+            
+            <button class="btn btn-sm btn-primary" onclick="applyFilters()">
+                <i class="fas fa-check"></i>
+                Apply Filters
+            </button>
+            
+            <button class="btn btn-sm btn-secondary" onclick="resetFilters()">
+                <i class="fas fa-times"></i>
+                Reset
+            </button>
+        </div>
+    </div>
+    
+    <!-- Books Grid/List -->
+    <div class="books-container" id="booksContainer">
+        {% for book in books %}
+        <div class="book-card glass-effect hover-lift" data-book-id="{{ book.id }}">
+            <div class="book-cover">
+                {% if book.cover_image %}
+                <img src="{{ book.cover_image.url }}" alt="{{ book.title }}" loading="lazy">
+                {% else %}
+                <div class="book-placeholder">
+                    <i class="fas fa-book"></i>
+                    <span>{{ book.title|slice:":1" }}</span>
+                </div>
+                {% endif %}
+                
+                {% if book.available > 0 %}
+                <div class="book-badge available">
+                    <i class="fas fa-check-circle"></i>
+                    {{ book.available }} Available
+                </div>
+                {% else %}
+                <div class="book-badge unavailable">
+                    <i class="fas fa-times-circle"></i>
+                    Unavailable
+                </div>
+                {% endif %}
+                
+                <div class="book-overlay">
+                    <button class="btn btn-sm btn-primary" onclick="viewBook({{ book.id }})">
+                        <i class="fas fa-eye"></i>
+                        View Details
+                    </button>
+                    {% if book.available > 0 %}
+                    <button class="btn btn-sm btn-gradient" onclick="issueBook({{ book.id }})">
+                        <i class="fas fa-plus-circle"></i>
+                        Issue Book
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="book-info">
+                <div class="book-category">
+                    <i class="fas fa-tag"></i>
+                    {{ book.category.name }}
+                </div>
+                <h3 class="book-title">{{ book.title }}</h3>
+                <p class="book-author">
+                    <i class="fas fa-user-edit"></i>
+                    {{ book.author }}
+                </p>
+                <p class="book-description">{{ book.description|truncatewords:15 }}</p>
+                
+                <div class="book-meta">
+                    <span class="meta-item">
+                        <i class="fas fa-barcode"></i>
+                        ISBN: {{ book.isbn }}
+                    </span>
+                    <span class="meta-item">
+                        <i class="fas fa-calendar"></i>
+                        {{ book.publication_date|date:"Y" }}
+                    </span>
+                </div>
+                
+                <div class="book-footer">
+                    <div class="book-rating">
+                        <i class="fas fa-star"></i>
+                        <span>{{ book.rating|default:"N/A" }}</span>
+                    </div>
+                    <span class="book-copies">
+                        <i class="fas fa-book"></i>
+                        {{ book.available }}/{{ book.quantity }} Available
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <i class="fas fa-book-open"></i>
+            <h3>No books found</h3>
+            <p>Try adjusting your filters or search query</p>
+            <button class="btn btn-primary" onclick="resetFilters()">
+                Reset Filters
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if books.has_other_pages %}
+    <div class="pagination">
+        {% if books.has_previous %}
+        <a href="?page=1{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="page-link">
+            <i class="fas fa-angle-double-left"></i>
+        </a>
+        <a href="?page={{ books.previous_page_number }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="page-link">
+            <i class="fas fa-angle-left"></i>
+        </a>
+        {% endif %}
+        
+        {% for num in books.paginator.page_range %}
+        {% if books.number == num %}
+        <span class="page-link active">{{ num }}</span>
+        {% elif num > books.number|add:'-3' and num < books.number|add:'3' %}
+        <a href="?page={{ num }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="page-link">{{ num }}</a>
+        {% endif %}
+        {% endfor %}
+        
+        {% if books.has_next %}
+        <a href="?page={{ books.next_page_number }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="page-link">
+            <i class="fas fa-angle-right"></i>
+        </a>
+        <a href="?page={{ books.paginator.num_pages }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" class="page-link">
+            <i class="fas fa-angle-double-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Issue Book Modal -->
+<div class="modal" id="issueBookModal">
+    <div class="modal-overlay" onclick="closeModal()"></div>
+    <div class="modal-content glass-effect">
+        <div class="modal-header">
+            <h2><i class="fas fa-book"></i> Issue Book</h2>
+            <button class="modal-close" onclick="closeModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to issue this book?</p>
+            <div class="book-preview" id="bookPreview"></div>
+            <div class="form-group">
+                <label>Return Date</label>
+                <input type="date" class="form-input" id="returnDate" required>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary btn-gradient" onclick="confirmIssue()">
+                <i class="fas fa-check"></i>
+                Confirm Issue
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentBookId = null;
+let viewMode = 'grid'; // 'grid' or 'list'
+
+function toggleView() {
+    const container = document.getElementById('booksContainer');
+    const icon = document.getElementById('viewIcon');
+    const text = document.getElementById('viewText');
+    
+    if (viewMode === 'grid') {
+        container.classList.add('list-view');
+        icon.className = 'fas fa-th-large';
+        text.textContent = 'List View';
+        viewMode = 'list';
+    } else {
+        container.classList.remove('list-view');
+        icon.className = 'fas fa-th';
+        text.textContent = 'Grid View';
+        viewMode = 'grid';
+    }
+}
+
+function applyFilters() {
+    const category = document.getElementById('categoryFilter').value;
+    const sort = document.getElementById('sortFilter').value;
+    const availability = document.getElementById('availabilityFilter').value;
+    
+    let url = '?';
+    if (category) url += `category=${category}&`;
+    if (sort) url += `sort=${sort}&`;
+    if (availability) url += `availability=${availability}&`;
+    
+    window.location.href = url;
+}
+
+function resetFilters() {
+    window.location.href = '{% url "book_list" %}';
+}
+
+function viewBook(bookId) {
+    window.location.href = `/books/${bookId}/`;
+}
+
+function issueBook(bookId) {
+    currentBookId = bookId;
+    
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    const returnDateInput = document.getElementById('returnDate');
+    returnDateInput.min = today;
+    
+    // Set default return date to 14 days from now
+    const defaultDate = new Date();
+    defaultDate.setDate(defaultDate.getDate() + 14);
+    returnDateInput.value = defaultDate.toISOString().split('T')[0];
+    
+    // Show modal
+    document.getElementById('issueBookModal').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('issueBookModal').classList.remove('active');
+    currentBookId = null;
+}
+
+function confirmIssue() {
+    if (!currentBookId) return;
+    
+    const returnDate = document.getElementById('returnDate').value;
+    if (!returnDate) {
+        showToast('Please select a return date', 'error');
+        return;
+    }
+    
+    // Submit form
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/books/${currentBookId}/issue/`;
+    
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = '{{ csrf_token }}';
+    
+    const dateInput = document.createElement('input');
+    dateInput.type = 'hidden';
+    dateInput.name = 'return_date';
+    dateInput.value = returnDate;
+    
+    form.appendChild(csrfInput);
+    form.appendChild(dateInput);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ book.title }} - Library Management System{% endblock %}
+
+{% block content %}
+<div class="book-detail-page page-fade-in">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-content">
+            <a href="{% url 'book_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Books
+            </a>
+        </div>
+    </div>
+    
+    <!-- Book Not Added Message -->
+    <div class="empty-state glass-effect" style="padding: 60px 40px; text-align: center; margin-top: 40px;">
+        <i class="fas fa-info-circle" style="font-size: 64px; color: #667eea; margin-bottom: 20px;"></i>
+        <h2 style="font-size: 28px; margin-bottom: 10px;">Book Details Not Added</h2>
+        <p style="color: #94a3b8; font-size: 16px; margin-bottom: 30px;">
+            Detailed information for "{{ book.title }}" is not available yet.
+        </p>
+        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+            <a href="{% url 'book_list' %}" class="btn btn-primary">
+                <i class="fas fa-book"></i> Browse More Books
+            </a>
+            {% if book.available > 0 %}
+            <button class="btn btn-gradient" onclick="issueBook({{ book.id }})">
+                <i class="fas fa-plus-circle"></i> Issue This Book
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Basic Book Info Card -->
+    <div class="glass-effect" style="padding: 30px; margin-top: 30px;">
+        <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-book"></i> Basic Information
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+            <div>
+                <p style="color: #94a3b8; font-size: 14px; margin-bottom: 5px;">Title</p>
+                <p style="font-weight: 600;">{{ book.title }}</p>
+            </div>
+            <div>
+                <p style="color: #94a3b8; font-size: 14px; margin-bottom: 5px;">Author</p>
+                <p style="font-weight: 600;">{{ book.author }}</p>
+            </div>
+            <div>
+                <p style="color: #94a3b8; font-size: 14px; margin-bottom: 5px;">ISBN</p>
+                <p style="font-weight: 600;">{{ book.isbn }}</p>
+            </div>
+            <div>
+                <p style="color: #94a3b8; font-size: 14px; margin-bottom: 5px;">Category</p>
+                <p style="font-weight: 600;">
+                    {% if book.category %}
+                        {{ book.category.name }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                <p style="color: #94a3b8; font-size: 14px; margin-bottom: 5px;">Availability</p>
+                <p style="font-weight: 600;">
+                    {% if book.available > 0 %}
+                        <span style="color: #10b981;">{{ book.available }} copies available</span>
+                    {% else %}
+                        <span style="color: #ef4444;">Currently unavailable</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                <p style="color: #94a3b8; font-size: 14px; margin-bottom: 5px;">Total Copies</p>
+                <p style="font-weight: 600;">{{ book.quantity }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Issue Book Modal -->
+<div class="modal" id="issueBookModal">
+    <div class="modal-overlay" onclick="closeModal()"></div>
+    <div class="modal-content glass-effect">
+        <div class="modal-header">
+            <h2><i class="fas fa-book"></i> Issue Book</h2>
+            <button class="modal-close" onclick="closeModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to issue this book?</p>
+            <div class="book-preview">
+                <h4>{{ book.title }}</h4>
+                <p>{{ book.author }}</p>
+            </div>
+            <div class="form-group">
+                <label>Return Date (14 days from now)</label>
+                <input type="date" class="form-input" id="returnDate" required>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary btn-gradient" onclick="confirmIssue()">
+                <i class="fas fa-check"></i>
+                Confirm Issue
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentBookId = {{ book.id }};
+
+function issueBook(bookId) {
+    currentBookId = bookId;
+    
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    const returnDateInput = document.getElementById('returnDate');
+    returnDateInput.min = today;
+    
+    // Set default return date to 14 days from now
+    const defaultDate = new Date();
+    defaultDate.setDate(defaultDate.getDate() + 14);
+    returnDateInput.value = defaultDate.toISOString().split('T')[0];
+    
+    // Show modal
+    document.getElementById('issueBookModal').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('issueBookModal').classList.remove('active');
+}
+
+function confirmIssue() {
+    if (!currentBookId) return;
+    
+    const returnDate = document.getElementById('returnDate').value;
+    if (!returnDate) {
+        alert('Please select a return date');
+        return;
+    }
+    
+    // Submit form
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/books/${currentBookId}/issue/`;
+    
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = '{{ csrf_token }}';
+    
+    const dateInput = document.createElement('input');
+    dateInput.type = 'hidden';
+    dateInput.name = 'return_date';
+    dateInput.value = returnDate;
+    
+    form.appendChild(csrfInput);
+    form.appendChild(dateInput);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}

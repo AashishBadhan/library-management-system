@@ -1,0 +1,198 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Library Management System{% endblock %}</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS (cache-busted) -->
+    <link rel="stylesheet" href="{% static 'css/style-teal.css' %}?v=20251111-2">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="{% if request.user.is_authenticated %}authenticated{% endif %}" data-theme="dark">
+    
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+    
+    <!-- Navbar -->
+    {% if request.user.is_authenticated %}
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-left">
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a href="{% url 'dashboard' %}" class="logo">
+                    <i class="fas fa-book-open"></i>
+                    <span>LibraryMS</span>
+                </a>
+            </div>
+            
+            <div class="nav-center">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search books by title or author..." id="globalSearch">
+                </div>
+            </div>
+            
+            <div class="nav-right">
+                <button class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-moon"></i>
+                </button>
+                
+                <div class="notifications">
+                    <button class="notification-btn" id="notificationBtn">
+                        <i class="fas fa-bell"></i>
+                        {% if request.user.is_authenticated and unread_notifications_count > 0 %}
+                            <span class="badge">{{ unread_notifications_count }}</span>
+                        {% endif %}
+                    </button>
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="notification-header">
+                            <h3>Notifications</h3>
+                            <a href="#" onclick="markAllRead(event)" class="mark-read-link">Mark all as read</a>
+                        </div>
+                        <div class="notification-list">
+                            {% if request.user.is_authenticated %}
+                                {% for notif in request.user.notifications.all|slice:":5" %}
+                                    <a href="{{ notif.link|default:'#' }}" class="notification-item {% if not notif.is_read %}unread{% endif %}">
+                                        <div class="notif-icon">
+                                            {% if notif.notification_type == 'issue_approved' %}<i class="fas fa-check-circle text-success"></i>
+                                            {% elif notif.notification_type == 'issue_rejected' %}<i class="fas fa-times-circle text-danger"></i>
+                                            {% elif notif.notification_type == 'due_soon' %}<i class="fas fa-clock text-warning"></i>
+                                            {% elif notif.notification_type == 'overdue' %}<i class="fas fa-exclamation-triangle text-danger"></i>
+                                            {% else %}<i class="fas fa-bell text-info"></i>{% endif %}
+                                        </div>
+                                        <div class="notif-content">
+                                            <strong>{{ notif.title }}</strong>
+                                            <p>{{ notif.message|truncatewords:15 }}</p>
+                                            <span class="notif-time">{{ notif.created_at|timesince }} ago</span>
+                                        </div>
+                                    </a>
+                                {% empty %}
+                                    <div class="empty-notifications">
+                                        <i class="fas fa-bell-slash"></i>
+                                        <p>No notifications yet</p>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        <a href="/notifications/" class="view-all-link">View All Notifications</a>
+                    </div>
+                </div>
+                
+                <div class="profile-dropdown">
+                    <button class="profile-btn" id="profileBtn">
+                        <div class="avatar">
+                            <span>{{ request.user.username|slice:":1"|upper }}</span>
+                        </div>
+                        <span class="username">{{ request.user.username }}</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="dropdown-menu" id="profileMenu">
+                        <a href="{% url 'user_profile' %}" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>Profile</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="{% url 'logout' %}" class="dropdown-item logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-content">
+            <nav class="sidebar-nav">
+                <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{% url 'book_list' %}" class="nav-item {% if request.resolver_match.url_name == 'book_list' %}active{% endif %}">
+                    <i class="fas fa-book"></i>
+                    <span>All Books</span>
+                </a>
+                <a href="{% url 'my_books' %}" class="nav-item {% if request.resolver_match.url_name == 'my_books' %}active{% endif %}">
+                    <i class="fas fa-bookmark"></i>
+                    <span>My Books</span>
+                </a>
+                <a href="{% url 'user_profile' %}" class="nav-item {% if request.resolver_match.url_name == 'user_profile' %}active{% endif %}">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                </a>
+                <!-- Search feature uses book_list page with search functionality -->
+                
+                {% if request.user.is_staff %}
+                <div class="nav-divider"></div>
+                <div class="nav-section-title">Admin</div>
+                <a href="{% url 'admin_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+                    <i class="fas fa-user-shield"></i>
+                    <span>Admin Panel</span>
+                </a>
+                {% endif %}
+            </nav>
+        </div>
+    </aside>
+    {% endif %}
+    
+    <!-- Main Content -->
+    <main class="main-content {% if not request.user.is_authenticated %}full-width{% endif %}">
+        {% block content %}
+        {% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-left">
+                <p>&copy; 2025 Library Management System. All rights reserved.</p>
+            </div>
+            <div class="footer-right">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Contact Us</a>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Custom JavaScript -->
+    <script src="{% static 'js/script.js' %}"></script>
+    
+    <!-- Django Messages as Toast Notifications -->
+    {% if messages %}
+    <script type="text/javascript">
+        // Django template syntax below - linter errors are false positives
+        document.addEventListener('DOMContentLoaded', function() {
+            {% for message in messages %}
+                {% if message.tags == 'error' or message.tags == 'danger' %}
+                    showToast('{{ message|escapejs }}', 'error');
+                {% elif message.tags == 'warning' %}
+                    showToast('{{ message|escapejs }}', 'warning');
+                {% elif message.tags == 'success' %}
+                    showToast('{{ message|escapejs }}', 'success');
+                {% else %}
+                    showToast('{{ message|escapejs }}', 'info');
+                {% endif %}
+            {% endfor %}
+        });
+    </script>
+    {% endif %}
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

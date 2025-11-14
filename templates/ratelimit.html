@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Too Many Requests - Library Management{% endblock %}
+
+{% block extra_css %}
+<style>
+    .error-container {
+        max-width: 600px;
+        margin: 100px auto;
+        padding: 40px;
+        text-align: center;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .error-icon {
+        font-size: 80px;
+        color: #ff6b6b;
+        margin-bottom: 20px;
+    }
+    
+    .error-code {
+        font-size: 48px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 10px;
+    }
+    
+    .error-title {
+        font-size: 24px;
+        color: #555;
+        margin-bottom: 20px;
+    }
+    
+    .error-message {
+        font-size: 16px;
+        color: #666;
+        margin-bottom: 30px;
+        line-height: 1.6;
+    }
+    
+    .countdown {
+        font-size: 18px;
+        font-weight: bold;
+        color: #0077be;
+        margin: 20px 0;
+    }
+    
+    .btn-home {
+        display: inline-block;
+        padding: 12px 30px;
+        background-color: #0077be;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        transition: background-color 0.3s;
+    }
+    
+    .btn-home:hover {
+        background-color: #005a8f;
+        color: white;
+    }
+    
+    .security-notice {
+        margin-top: 30px;
+        padding: 15px;
+        background-color: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 6px;
+        font-size: 14px;
+        color: #856404;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-icon">⏱️</div>
+    <div class="error-code">429</div>
+    <h1 class="error-title">Too Many Requests</h1>
+    <p class="error-message">
+        You've made too many requests in a short period of time. 
+        This is a security measure to protect our system from abuse.
+    </p>
+    
+    <div class="countdown">
+        <p>Please wait <span id="countdown">60</span> seconds before trying again.</p>
+    </div>
+    
+    <div class="security-notice">
+        <strong>Security Notice:</strong> If you continue to see this message, please contact the administrator.
+        Repeated attempts may result in a temporary ban.
+    </div>
+    
+    <div style="margin-top: 30px;">
+        <a href="{% url 'login' %}" class="btn-home">Return to Login</a>
+    </div>
+</div>
+
+<script>
+    // Countdown timer
+    let seconds = 60;
+    const countdownEl = document.getElementById('countdown');
+    
+    const timer = setInterval(() => {
+        seconds--;
+        countdownEl.textContent = seconds;
+        
+        if (seconds <= 0) {
+            clearInterval(timer);
+            countdownEl.textContent = '0';
+            // Show a message that they can try again
+            const countdown = countdownEl.closest('.countdown');
+            countdown.innerHTML = '<p style="color: #28a745;">You can now try again!</p>';
+        }
+    }, 1000);
+</script>
+{% endblock %}

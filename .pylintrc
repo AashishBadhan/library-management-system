@@ -1,0 +1,20 @@
+[MASTER]
+load-plugins=pylint_django
+
+[MESSAGES CONTROL]
+disable=
+    C0111,  # missing-docstring
+    C0103,  # invalid-name
+    E0401,  # import-error (suppress false positives for installed packages)
+    W0613,  # unused-argument
+    R0903,  # too-few-public-methods
+    R0913,  # too-many-arguments
+
+[DJANGO]
+django-settings-module=library_management.settings
+
+[BASIC]
+good-names=i,j,k,ex,Run,_,pk,id
+
+[DESIGN]
+max-line-length=120

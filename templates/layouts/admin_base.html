@@ -1,0 +1,118 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin | Library Management{% endblock %}</title>
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- Shared base styles + Admin overrides -->
+    <link rel="stylesheet" href="{% static 'css/style-teal.css' %}">
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="admin">
+    <div class="admin-shell">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="brand">
+                <i class="fas fa-shield-halved"></i>
+                <span>Library Admin</span>
+            </div>
+            <nav class="menu">
+                <a href="{% url 'admin_dashboard' %}" class="menu-item {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+                    <i class="fas fa-gauge"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{% url 'admin_books' %}" class="menu-item {% if request.resolver_match.url_name == 'admin_books' %}active{% endif %}">
+                    <i class="fas fa-book"></i>
+                    <span>Manage Books</span>
+                </a>
+                <a href="{% url 'admin_users' %}" class="menu-item {% if request.resolver_match.url_name == 'admin_users' %}active{% endif %}">
+                    <i class="fas fa-users"></i>
+                    <span>Manage Users</span>
+                </a>
+                <a href="{% url 'admin_categories' %}" class="menu-item {% if request.resolver_match.url_name == 'admin_categories' %}active{% endif %}">
+                    <i class="fas fa-tags"></i>
+                    <span>Categories</span>
+                </a>
+                <a href="{% url 'admin_fines' %}" class="menu-item {% if request.resolver_match.url_name == 'admin_fines' %}active{% endif %}">
+                    <i class="fas fa-indian-rupee-sign"></i>
+                    <span>Fines</span>
+                </a>
+                <a href="{% url 'admin_reports' %}" class="menu-item {% if request.resolver_match.url_name == 'admin_reports' %}active{% endif %}">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Reports</span>
+                </a>
+                <a href="{% url 'logout' %}" class="menu-item danger">
+                    <i class="fas fa-right-from-bracket"></i>
+                    <span>Logout</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main region -->
+        <div class="admin-main">
+            <header class="admin-header">
+                <div class="header-left">
+                    <button class="sidebar-toggle" id="adminSidebarToggle" aria-label="Toggle Menu">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="title">
+                        {% block header_title %}<h1>Dashboard</h1>{% endblock %}
+                    </div>
+                </div>
+                <div class="actions">
+                    <a href="{% url 'dashboard' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> <span class="hide-mobile">User Site</span></a>
+                    <div class="admin-profile">
+                        <div class="avatar">{{ request.user.username|slice:':1'|upper }}</div>
+                        <span class="hide-mobile">{{ request.user.username }}</span>
+                    </div>
+                </div>
+            </header>
+
+            <main class="admin-content">
+                {% block content %}{% endblock %}
+            </main>
+
+            <footer class="admin-footer">
+                <p>© {{ now|default:2025 }} Library Admin</p>
+            </footer>
+        </div>
+    </div>
+
+    <script src="{% static 'js/script.js' %}"></script>
+    <script>
+    // Admin sidebar toggle for mobile
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebarToggle = document.getElementById('adminSidebarToggle');
+        const sidebar = document.querySelector('.admin-sidebar');
+        const adminShell = document.querySelector('.admin-shell');
+        
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+                adminShell.classList.toggle('sidebar-open');
+            });
+            
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth <= 768) {
+                    if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                        sidebar.classList.remove('active');
+                        adminShell.classList.remove('sidebar-open');
+                    }
+                }
+            });
+        }
+    });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,34 @@
+{% extends 'layouts/admin_base.html' %}
+{% load book_extras %}
+{% block title %}Fines{% endblock %}
+{% block header_title %}<h1><i class="fas fa-indian-rupee-sign"></i> Fines</h1>{% endblock %}
+{% block content %}
+<div class="dashboard-card">
+  <div class="card-header"><h2 class="card-title">Overdue Summary</h2></div>
+  <div class="card-body">
+    <p>Total Overdue Issues: <strong>{{ total_overdue }}</strong></p>
+    <p>Estimated Fine Amount (dynamic): <strong>₹{{ total_amount }}</strong></p>
+  </div>
+</div>
+<div class="table-container glass-effect" style="margin-top:1rem">
+  <div class="table-responsive">
+    <table class="modern-table">
+      <thead><tr><th>ID</th><th>User</th><th>Book</th><th>Return Date</th><th>Days Overdue</th><th>Fine (₹)</th></tr></thead>
+      <tbody>
+        {% for i in overdue_issues %}
+          <tr class="table-row overdue-row">
+            <td>#{{ i.id }}</td>
+            <td>{{ i.user.username }}</td>
+            <td>{{ i.book.title }}</td>
+            <td>{{ i.return_date|date:"M d, Y" }}</td>
+            <td>{{ i.days_remaining|abs }}</td>
+            <td>{{ i.calculated_fine }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6"><div class="empty-state"><i class="fas fa-check-circle"></i><p>No overdue issues</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

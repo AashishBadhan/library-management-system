@@ -1,0 +1,387 @@
+{% extends 'layouts/admin_base.html' %}
+{% block title %}Reports{% endblock %}
+{% block header_title %}<h1><i class="fas fa-chart-bar"></i> Reports & Analytics</h1>{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <div class="stat-card blue">
+        <div class="stat-icon"><i class="fas fa-book"></i></div>
+        <div class="stat-content">
+            <h3>{{ total_books }}</h3>
+            <p>Total Books</p>
+        </div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-icon"><i class="fas fa-users"></i></div>
+        <div class="stat-content">
+            <h3>{{ total_users }}</h3>
+            <p>Total Users</p>
+        </div>
+    </div>
+    <div class="stat-card purple">
+        <div class="stat-icon"><i class="fas fa-book-reader"></i></div>
+        <div class="stat-content">
+            <h3>{{ active_issues }}</h3>
+            <p>Active Issues</p>
+        </div>
+    </div>
+    <div class="stat-card orange">
+        <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+        <div class="stat-content">
+            <h3>${{ total_fines|floatformat:2 }}</h3>
+            <p>Total Fines</p>
+        </div>
+    </div>
+    <div class="stat-card red">
+        <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+        <div class="stat-content">
+            <h3>${{ unpaid_fines|floatformat:2 }}</h3>
+            <p>Unpaid Fines</p>
+        </div>
+    </div>
+</div>
+
+<!-- Date Range Filter -->
+<div class="dashboard-card" style="margin-top: 2rem;">
+    <div class="card-header">
+        <h2 class="card-title">Date Range Filter</h2>
+    </div>
+    <div class="card-body">
+        <form method="get" class="date-filter-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="start_date">Start Date</label>
+                    <input type="date" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="end_date">End Date</label>
+                    <input type="date" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-control">
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Apply Filter</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="charts-grid">
+    <div class="dashboard-card">
+        <div class="card-header">
+            <h2 class="card-title">Monthly Book Issues</h2>
+        </div>
+        <div class="card-body">
+            <canvas id="issuesChart"></canvas>
+        </div>
+    </div>
+
+    <div class="dashboard-card">
+        <div class="card-header">
+            <h2 class="card-title">Monthly Fines Collected</h2>
+        </div>
+        <div class="card-body">
+            <canvas id="finesChart"></canvas>
+        </div>
+    </div>
+
+    <div class="dashboard-card">
+        <div class="card-header">
+            <h2 class="card-title">Book Category Distribution</h2>
+        </div>
+        <div class="card-body">
+            <canvas id="categoryChart"></canvas>
+        </div>
+    </div>
+
+    <div class="dashboard-card">
+        <div class="card-header">
+            <h2 class="card-title">Top 10 Most Borrowed Books</h2>
+        </div>
+        <div class="card-body">
+            <div class="top-books-list">
+                {% for book in top_books %}
+                <div class="top-book-item">
+                    <span class="rank">#{{ forloop.counter }}</span>
+                    <span class="book-title">{{ book.title }}</span>
+                    <span class="borrow-count">{{ book.borrow_count }} issues</span>
+                </div>
+                {% empty %}
+                <p>No data available</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSV Exports -->
+<div class="dashboard-card" style="margin-top: 2rem;">
+  <div class="card-header"><h2 class="card-title">Data Exports</h2></div>
+  <div class="card-body quick-actions">
+    <a class="action-btn" href="{% url 'export_books_csv' %}">
+        <div class="action-icon green"><i class="fas fa-file-csv"></i></div>
+        <span>Export Books CSV</span>
+    </a>
+    <a class="action-btn" href="{% url 'export_issues_csv' %}">
+        <div class="action-icon purple"><i class="fas fa-file-csv"></i></div>
+        <span>Export Issues CSV</span>
+    </a>
+    <a class="action-btn" href="{% url 'export_books_pdf' %}">
+        <div class="action-icon red"><i class="fas fa-file-pdf"></i></div>
+        <span>Export Books PDF</span>
+    </a>
+    <a class="action-btn" href="{% url 'export_issues_pdf' %}">
+        <div class="action-icon blue"><i class="fas fa-file-pdf"></i></div>
+        <span>Export Issues PDF</span>
+    </a>
+    <a class="action-btn" href="{% url 'export_fines_pdf' %}">
+        <div class="action-icon orange"><i class="fas fa-file-pdf"></i></div>
+        <span>Export Fines PDF</span>
+    </a>
+  </div>
+</div>
+
+<style>
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.stat-card.blue .stat-icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.stat-card.green .stat-icon { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.stat-card.purple .stat-icon { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+.stat-card.orange .stat-icon { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.stat-card.red .stat-icon { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+
+.stat-content h3 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.stat-content p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.date-filter-form .form-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.date-filter-form .form-group {
+    flex: 1;
+}
+
+.date-filter-form .form-group:last-child {
+    flex: 0;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.top-books-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.top-book-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    transition: background 0.2s;
+}
+
+.top-book-item:hover {
+    background: var(--glass-border);
+}
+
+.top-book-item .rank {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 1.1rem;
+    min-width: 35px;
+}
+
+.top-book-item .book-title {
+    flex: 1;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.top-book-item .borrow-count {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    padding: 0.25rem 0.75rem;
+    background: var(--glass-bg);
+    border-radius: 12px;
+}
+
+@media (max-width: 768px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .date-filter-form .form-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .date-filter-form .form-group:last-child {
+        flex: 1;
+    }
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Common chart options
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                labels: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary')
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary')
+                },
+                grid: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--glass-border')
+                }
+            },
+            x: {
+                ticks: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary')
+                },
+                grid: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--glass-border')
+                }
+            }
+        }
+    };
+
+    // Monthly Issues Chart
+    const issuesCtx = document.getElementById('issuesChart').getContext('2d');
+    new Chart(issuesCtx, {
+        type: 'line',
+        data: {
+            labels: {{ issues_labels|safe }},
+            datasets: [{
+                label: 'Book Issues',
+                data: {{ issues_data|safe }},
+                borderColor: 'rgb(102, 126, 234)',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: commonOptions
+    });
+
+    // Monthly Fines Chart
+    const finesCtx = document.getElementById('finesChart').getContext('2d');
+    new Chart(finesCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ fines_labels|safe }},
+            datasets: [{
+                label: 'Fines Collected ($)',
+                data: {{ fines_data|safe }},
+                backgroundColor: 'rgba(245, 158, 11, 0.7)',
+                borderColor: 'rgb(245, 158, 11)',
+                borderWidth: 2
+            }]
+        },
+        options: commonOptions
+    });
+
+    // Category Distribution Chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ category_labels|safe }},
+            datasets: [{
+                data: {{ category_data|safe }},
+                backgroundColor: [
+                    'rgba(102, 126, 234, 0.8)',
+                    'rgba(16, 185, 129, 0.8)',
+                    'rgba(139, 92, 246, 0.8)',
+                    'rgba(245, 158, 11, 0.8)',
+                    'rgba(239, 68, 68, 0.8)',
+                    'rgba(59, 130, 246, 0.8)',
+                    'rgba(236, 72, 153, 0.8)',
+                    'rgba(20, 184, 166, 0.8)',
+                    'rgba(251, 146, 60, 0.8)',
+                    'rgba(168, 85, 247, 0.8)'
+                ],
+                borderWidth: 2,
+                borderColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-primary')
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary')
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

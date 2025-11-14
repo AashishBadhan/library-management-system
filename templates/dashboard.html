@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Library Management System{% endblock %}
+
+{% block content %}
+<div class="dashboard-page page-fade-in">
+    <!-- Welcome Section -->
+    <div class="page-header">
+        <div class="header-content">
+            <h1 class="page-title">Welcome back, {{ request.user.first_name|default:request.user.username }}! 👋</h1>
+            <p class="page-subtitle">Here's what's happening with your library today</p>
+        </div>
+        <div class="header-actions">
+            {% if request.user.is_staff %}
+            <a href="{% url 'export_books_csv' %}" class="btn btn-secondary">
+                <i class="fas fa-download"></i>
+                Export Report
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card glass-effect hover-lift">
+            <div class="stat-icon purple">
+                <i class="fas fa-book"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-value">{{ total_books }}</h3>
+                <p class="stat-label">Total Books</p>
+                <span class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    12% from last month
+                </span>
+            </div>
+        </div>
+        
+        <div class="stat-card glass-effect hover-lift">
+            <div class="stat-icon blue">
+                <i class="fas fa-bookmark"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-value">{{ books_issued }}</h3>
+                <p class="stat-label">Books Issued</p>
+                <span class="stat-change neutral">
+                    <i class="fas fa-minus"></i>
+                    No change
+                </span>
+            </div>
+        </div>
+        
+        <div class="stat-card glass-effect hover-lift">
+            <div class="stat-icon yellow">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-value">{{ due_soon }}</h3>
+                <p class="stat-label">Due Soon</p>
+                <span class="stat-change warning">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Attention needed
+                </span>
+            </div>
+        </div>
+        
+        <div class="stat-card glass-effect hover-lift">
+            <div class="stat-icon green">
+                <i class="fas fa-bell"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-value">{{ notifications_count }}</h3>
+                <p class="stat-label">Notifications</p>
+                <span class="stat-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    3 new today
+                </span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content Grid -->
+    <div class="dashboard-grid">
+        <!-- Recent Activity -->
+        <div class="dashboard-card glass-effect">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-history"></i>
+                    Recent Activity
+                </h2>
+                <a href="#" class="card-action">View all</a>
+            </div>
+            <div class="card-body">
+                <div class="activity-list">
+                    {% for activity in recent_activities %}
+                    <div class="activity-item">
+                        <div class="activity-icon {{ activity.type }}">
+                            <i class="fas fa-{{ activity.icon }}"></i>
+                        </div>
+                        <div class="activity-content">
+                            <p class="activity-text">{{ activity.text }}</p>
+                            <span class="activity-time">{{ activity.time }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No recent activity</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="dashboard-card glass-effect">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-bolt"></i>
+                    Quick Actions
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="quick-actions">
+                    <a href="{% url 'book_list' %}" class="action-btn">
+                        <div class="action-icon purple">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <span>Browse Books</span>
+                    </a>
+                    <a href="{% url 'my_books' %}" class="action-btn">
+                        <div class="action-icon blue">
+                            <i class="fas fa-bookmark"></i>
+                        </div>
+                        <span>My Books</span>
+                    </a>
+                    <a href="{% url 'book_list' %}" class="action-btn">
+                        <div class="action-icon yellow">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <span>Search</span>
+                    </a>
+                    {% if request.user.is_staff %}
+                    <a href="{% url 'admin_panel' %}" class="action-btn">
+                        <div class="action-icon green">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <span>Admin</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Due Books Section -->
+    {% if due_books %}
+    <div class="dashboard-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-exclamation-triangle"></i>
+                Books Due Soon
+            </h2>
+        </div>
+        <div class="books-grid">
+            {% for book in due_books %}
+            <div class="book-card glass-effect hover-lift">
+                <div class="book-cover">
+                    {% if book.cover_image %}
+                    <img src="{{ book.cover_image.url }}" alt="{{ book.title }}">
+                    {% else %}
+                    <div class="book-placeholder">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    {% endif %}
+                    <div class="book-badge warning">Due in {{ book.days_remaining }} days</div>
+                </div>
+                <div class="book-info">
+                    <h3 class="book-title">{{ book.title }}</h3>
+                    <p class="book-author">{{ book.author }}</p>
+                    <div class="book-meta">
+                        <span><i class="fas fa-calendar"></i> Due: {{ book.due_date|date:"M d, Y" }}</span>
+                    </div>
+                    <a href="{% url 'return_book' book.id %}" class="btn btn-sm btn-primary">
+                        Return Book
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Recommendations -->
+    <div class="dashboard-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-star"></i>
+                Recommended for You
+            </h2>
+            <a href="{% url 'book_list' %}" class="section-action">View all books</a>
+        </div>
+        <div class="books-grid">
+            {% for book in recommended_books %}
+            <div class="book-card glass-effect hover-lift">
+                <div class="book-cover">
+                    {% if book.cover_image %}
+                    <img src="{{ book.cover_image.url }}" alt="{{ book.title }}">
+                    {% else %}
+                    <div class="book-placeholder">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    {% endif %}
+                    {% if book.is_new %}
+                    <div class="book-badge new">New</div>
+                    {% endif %}
+                </div>
+                <div class="book-info">
+                    <h3 class="book-title">{{ book.title }}</h3>
+                    <p class="book-author">{{ book.author }}</p>
+                    <div class="book-meta">
+                        <span><i class="fas fa-tag"></i> {{ book.category }}</span>
+                        <span class="book-status available">
+                            <i class="fas fa-check-circle"></i> Available
+                        </span>
+                    </div>
+                    <a href="{% url 'book_list' %}?search={{ book.title }}" class="btn btn-sm btn-secondary">
+                        View Details
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}All Notifications{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-bell"></i> All Notifications
+        </h1>
+        <p>View all your notification history</p>
+    </div>
+
+    <div class="glass-card" style="padding: 0;">
+        {% if notifications %}
+            <div class="notifications-page-list">
+                {% for notif in notifications %}
+                <a href="{{ notif.link|default:'#' }}" class="notification-page-item {% if not notif.is_read %}unread{% endif %}">
+                    <div class="notif-icon 
+                        {% if notif.notification_type == 'issue_approved' %}text-success
+                        {% elif notif.notification_type == 'issue_rejected' %}text-danger
+                        {% elif notif.notification_type == 'due_soon' or notif.notification_type == 'overdue' %}text-warning
+                        {% elif notif.notification_type == 'returned' or notif.notification_type == 'fine_paid' %}text-info
+                        {% elif notif.notification_type == 'fine_added' %}text-danger
+                        {% else %}text-primary
+                        {% endif %}">
+                        {% if notif.notification_type == 'issue_approved' %}
+                            <i class="fas fa-check-circle"></i>
+                        {% elif notif.notification_type == 'issue_rejected' %}
+                            <i class="fas fa-times-circle"></i>
+                        {% elif notif.notification_type == 'due_soon' %}
+                            <i class="fas fa-clock"></i>
+                        {% elif notif.notification_type == 'overdue' %}
+                            <i class="fas fa-exclamation-triangle"></i>
+                        {% elif notif.notification_type == 'returned' %}
+                            <i class="fas fa-undo"></i>
+                        {% elif notif.notification_type == 'fine_added' %}
+                            <i class="fas fa-dollar-sign"></i>
+                        {% elif notif.notification_type == 'fine_paid' %}
+                            <i class="fas fa-check-double"></i>
+                        {% else %}
+                            <i class="fas fa-info-circle"></i>
+                        {% endif %}
+                    </div>
+                    <div class="notif-content">
+                        <strong>{{ notif.title }}</strong>
+                        <p>{{ notif.message }}</p>
+                        <span class="notif-time">{{ notif.created_at|timesince }} ago</span>
+                    </div>
+                    {% if not notif.is_read %}
+                    <span class="unread-badge">New</span>
+                    {% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state" style="padding: 3rem; text-align: center;">
+                <i class="fas fa-bell-slash" style="font-size: 3rem; color: var(--text-tertiary); margin-bottom: 1rem;"></i>
+                <h3>No Notifications</h3>
+                <p>You don't have any notifications yet.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.notifications-page-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.notification-page-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--glass-border);
+    transition: background 0.2s;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+}
+
+.notification-page-item:last-child {
+    border-bottom: none;
+}
+
+.notification-page-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.notification-page-item.unread {
+    background: rgba(20, 184, 166, 0.05);
+}
+
+.notification-page-item.unread:hover {
+    background: rgba(20, 184, 166, 0.1);
+}
+
+.unread-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: var(--primary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.page-header {
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.page-header p {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.empty-state h3 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+}
+</style>
+{% endblock %}

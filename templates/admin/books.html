@@ -1,0 +1,192 @@
+{% extends 'layouts/admin_base.html' %}
+{% block title %}Manage Books{% endblock %}
+{% block header_title %}<h1><i class="fas fa-book"></i> Manage Books</h1>{% endblock %}
+{% block content %}
+<div class="table-container glass-effect">
+  <div class="table-header">
+    <div></div>
+    <div class="table-actions">
+      <form method="post" action="{% url 'add_book' %}" enctype="multipart/form-data" style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+        {% csrf_token %}
+        <input type="text" name="title" class="form-input" placeholder="Title" required>
+        <input type="text" name="author" class="form-input" placeholder="Author" required>
+        <input type="text" name="isbn" class="form-input" placeholder="ISBN" required>
+        <select name="category" class="form-input" required>
+          <option value="">Category</option>
+          {% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+        </select>
+        <input type="number" name="quantity" class="form-input" min="1" value="1" required>
+        <input type="number" name="price" class="form-input" step="0.01" min="0" value="0" required>
+        <input type="date" name="publication_date" class="form-input" required>
+        <button class="btn btn-primary" type="submit"><i class="fas fa-plus"></i> Add</button>
+      </form>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="modern-table">
+      <thead>
+        <tr>
+          <th>ID</th><th>Title</th><th>Author</th><th>Category</th><th>Qty</th><th>Avail</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in books %}
+          <tr class="table-row">
+            <td>#{{ b.id }}</td>
+            <td>{{ b.title }}</td>
+            <td>{{ b.author }}</td>
+            <td>{% if b.category %}{{ b.category.name }}{% else %}N/A{% endif %}</td>
+            <td>{{ b.quantity }}</td>
+            <td>{{ b.available }}</td>
+            <td>
+              <button class="btn btn-sm btn-outline" onclick="openEditBookModal({{ b.id }}, '{{ b.title|escapejs }}', '{{ b.author|escapejs }}', '{{ b.isbn }}', {% if b.category %}{{ b.category.id }}{% else %}null{% endif %}, {{ b.quantity }}, {{ b.available }}, '{{ b.price }}', '{{ b.publication_date }}', '{{ b.description|escapejs }}')"><i class="fas fa-edit"></i></button>
+              <button class="btn btn-sm btn-danger" onclick="openDeleteBookModal({{ b.id }}, '{{ b.title|escapejs }}')"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7"><div class="empty-state"><i class="fas fa-book"></i><p>No books</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Edit Book Modal -->
+<div id="editBookModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Edit Book</h3>
+      <button class="modal-close" onclick="closeEditBookModal()">&times;</button>
+    </div>
+    <form method="post" id="editBookForm" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="text" name="title" id="edit_title" placeholder="Title" required>
+      <input type="text" name="author" id="edit_author" placeholder="Author" required>
+      <input type="text" name="isbn" id="edit_isbn" placeholder="ISBN" required>
+      <select name="category" id="edit_category" required>
+        <option value="">Category</option>
+        {% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+      </select>
+      <input type="number" name="quantity" id="edit_quantity" min="0" required>
+      <input type="number" name="available" id="edit_available" min="0" required>
+      <input type="number" name="price" id="edit_price" step="0.01" min="0" required>
+      <input type="date" name="publication_date" id="edit_publication_date" required>
+      <textarea name="description" id="edit_description" rows="3" placeholder="Description"></textarea>
+      <input type="file" name="cover_image" accept="image/*">
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn" onclick="closeEditBookModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Book Modal -->
+<div id="deleteBookModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Delete Book</h3>
+      <button class="modal-close" onclick="closeDeleteBookModal()">&times;</button>
+    </div>
+    <p>Are you sure you want to delete "<span id="delete_book_title"></span>"?</p>
+    <form method="post" id="deleteBookForm">
+      {% csrf_token %}
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-danger">Delete</button>
+        <button type="button" class="btn" onclick="closeDeleteBookModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// Store existing ISBNs for client-side validation
+const existingISBNs = [
+  {% for book in books %}'{{ book.isbn }}'{% if not forloop.last %}, {% endif %}{% endfor %}
+];
+
+// Add Book Form Validation
+document.addEventListener('DOMContentLoaded', function() {
+  const addBookForm = document.querySelector('form[action="{% url 'add_book' %}"]');
+  const isbnInput = addBookForm.querySelector('input[name="isbn"]');
+  
+  isbnInput.addEventListener('blur', function() {
+    const isbn = this.value.trim();
+    if (isbn && existingISBNs.includes(isbn)) {
+      alert(`⚠️ Warning: A book with ISBN "${isbn}" already exists in the library.`);
+      this.style.borderColor = '#ef4444';
+    } else {
+      this.style.borderColor = '';
+    }
+  });
+  
+  addBookForm.addEventListener('submit', function(e) {
+    const isbn = isbnInput.value.trim();
+    if (existingISBNs.includes(isbn)) {
+      e.preventDefault();
+      alert(`❌ Cannot add book: A book with ISBN "${isbn}" already exists.\n\nPlease use a unique ISBN number.`);
+      isbnInput.focus();
+      return false;
+    }
+  });
+});
+
+function openEditBookModal(id, title, author, isbn, categoryId, qty, avail, price, pubDate, desc) {
+  document.getElementById('edit_title').value = title;
+  document.getElementById('edit_author').value = author;
+  document.getElementById('edit_isbn').value = isbn;
+  document.getElementById('edit_isbn').dataset.originalIsbn = isbn; // Store original ISBN
+  document.getElementById('edit_category').value = categoryId || '';
+  document.getElementById('edit_quantity').value = qty;
+  document.getElementById('edit_available').value = avail;
+  document.getElementById('edit_price').value = price;
+  document.getElementById('edit_publication_date').value = pubDate;
+  document.getElementById('edit_description').value = desc || '';
+  document.getElementById('editBookForm').action = `/admin/books/${id}/edit/`;
+  document.getElementById('editBookModal').style.display = 'flex';
+}
+
+function closeEditBookModal() {
+  document.getElementById('editBookModal').style.display = 'none';
+}
+
+function openDeleteBookModal(id, title) {
+  document.getElementById('delete_book_title').textContent = title;
+  document.getElementById('deleteBookForm').action = `/admin/books/${id}/delete/`;
+  document.getElementById('deleteBookModal').style.display = 'flex';
+}
+
+function closeDeleteBookModal() {
+  document.getElementById('deleteBookModal').style.display = 'none';
+}
+
+// Edit Book Form Validation
+document.getElementById('editBookForm').addEventListener('submit', function(e) {
+  const isbnInput = document.getElementById('edit_isbn');
+  const newIsbn = isbnInput.value.trim();
+  const originalIsbn = isbnInput.dataset.originalIsbn;
+  
+  // Only check if ISBN changed
+  if (newIsbn !== originalIsbn && existingISBNs.includes(newIsbn)) {
+    e.preventDefault();
+    alert(`❌ Cannot update: A book with ISBN "${newIsbn}" already exists.\n\nPlease use a unique ISBN number.`);
+    isbnInput.focus();
+    return false;
+  }
+});
+
+// Real-time validation for edit modal
+document.getElementById('edit_isbn').addEventListener('input', function() {
+  const newIsbn = this.value.trim();
+  const originalIsbn = this.dataset.originalIsbn;
+  
+  if (newIsbn !== originalIsbn && existingISBNs.includes(newIsbn)) {
+    this.style.borderColor = '#ef4444';
+    this.title = 'This ISBN already exists';
+  } else {
+    this.style.borderColor = '';
+    this.title = '';
+  }
+});
+</script>
+{% endblock %}

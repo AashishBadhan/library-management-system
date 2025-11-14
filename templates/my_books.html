@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+{% load static book_extras %}
+
+{% block title %}My Books - Library Management System{% endblock %}
+
+{% block content %}
+<div class="my-books-page page-fade-in">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-content">
+            <h1 class="page-title">My Books</h1>
+            <p class="page-subtitle">Manage your issued books and track return dates</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="printBooks()">
+                <i class="fas fa-print"></i>
+                Print List
+            </button>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card glass-effect">
+            <div class="summary-icon blue">
+                <i class="fas fa-book-open"></i>
+            </div>
+            <div class="summary-content">
+                <h3>{{ active_books }}</h3>
+                <p>Currently Issued</p>
+            </div>
+        </div>
+        
+        <div class="summary-card glass-effect">
+            <div class="summary-icon yellow">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="summary-content">
+                <h3>{{ due_soon_count }}</h3>
+                <p>Due This Week</p>
+            </div>
+        </div>
+        
+        <div class="summary-card glass-effect">
+            <div class="summary-icon red">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="summary-content">
+                <h3>{{ overdue_count }}</h3>
+                <p>Overdue Books</p>
+            </div>
+        </div>
+        
+        <div class="summary-card glass-effect">
+            <div class="summary-icon green">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="summary-content">
+                <h3>{{ returned_count }}</h3>
+                <p>Returned This Month</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Books Table -->
+    <div class="table-container glass-effect">
+        <div class="table-header">
+            <h2><i class="fas fa-list"></i> Issued Books</h2>
+            <div class="table-actions">
+                <input type="text" class="search-input" placeholder="Search by title..." id="tableSearch">
+                <select class="filter-select" id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="due-soon">Due Soon</option>
+                    <option value="overdue">Overdue</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="modern-table">
+                <thead>
+                    <tr>
+                        <th>Book</th>
+                        <th>Title</th>
+                        <th>Issue Date</th>
+                        <th>Due Date</th>
+                        <th>Days Remaining</th>
+                        <th>Fine</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for issue in book_issues %}
+                    <tr class="table-row {% if issue.is_overdue %}overdue{% elif issue.days_remaining <= 3 %}due-soon{% endif %}" data-book-id="{{ issue.book.id }}">
+                        <td>
+                            <div class="book-thumb">
+                                {% if issue.book.cover_image %}
+                                <img src="{{ issue.book.cover_image.url }}" alt="{{ issue.book.title }}">
+                                {% else %}
+                                <div class="thumb-placeholder">
+                                    <i class="fas fa-book"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="book-details">
+                                <h4>{{ issue.book.title }}</h4>
+                                <p>{{ issue.book.author }}</p>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="date-text">
+                                <i class="fas fa-calendar-plus"></i>
+                                {{ issue.issue_date|date:"M d, Y" }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="date-text">
+                                <i class="fas fa-calendar-minus"></i>
+                                {{ issue.return_date|date:"M d, Y" }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if issue.is_overdue %}
+                            <span class="days-badge overdue">
+                                <i class="fas fa-exclamation-circle"></i>
+                                {{ issue.days_remaining|abs }} days overdue
+                            </span>
+                            {% elif issue.days_remaining != None and issue.days_remaining <= 3 %}
+                            <span class="days-badge warning">
+                                <i class="fas fa-clock"></i>
+                                {{ issue.days_remaining }} days left
+                            </span>
+                            {% elif issue.days_remaining != None %}
+                            <span class="days-badge success">
+                                <i class="fas fa-check"></i>
+                                {{ issue.days_remaining }} days left
+                            </span>
+                            {% else %}
+                            <span class="days-badge success">
+                                <i class="fas fa-check"></i>
+                                Returned
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if issue.actual_return_date %}
+                                <span class="status-badge {% if issue.fine_amount > 0 %}warning{% else %}active{% endif %}">
+                                    ₹{{ issue.fine_amount|default:0 }}
+                                </span>
+                            {% else %}
+                                {% if issue.is_overdue %}
+                                <span class="status-badge overdue">₹{{ issue.calculated_fine }}</span>
+                                {% else %}
+                                <span class="status-badge active">₹0</span>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if issue.status == 'requested' %}
+                                <span class="status-badge warning"><i class="fas fa-hourglass"></i> Requested</span>
+                            {% elif issue.status == 'rejected' %}
+                                <span class="status-badge inactive"><i class="fas fa-ban"></i> Rejected</span>
+                            {% elif issue.actual_return_date %}
+                                <span class="status-badge success"><i class="fas fa-check"></i> Returned</span>
+                            {% elif issue.is_overdue %}
+                                <span class="status-badge overdue"><i class="fas fa-times-circle"></i> Overdue</span>
+                            {% elif issue.days_remaining != None and issue.days_remaining <= 3 %}
+                                <span class="status-badge warning"><i class="fas fa-exclamation-triangle"></i> Due Soon</span>
+                            {% else %}
+                                <span class="status-badge active"><i class="fas fa-check-circle"></i> Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-icon" title="View Book" onclick="viewBook({{ issue.book.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn-icon" title="Renew" onclick="renewBook({{ issue.id }})">
+                                    <i class="fas fa-sync"></i>
+                                </button>
+                                <button class="btn-icon primary" title="Return Book" onclick="returnBook({{ issue.id }}, '{{ issue.book.title }}')">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <i class="fas fa-book-open"></i>
+                                <h3>No books issued</h3>
+                                <p>You haven't issued any books yet</p>
+                                <a href="{% url 'book_list' %}" class="btn btn-primary">
+                                    Browse Books
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Fine Information -->
+    {% if total_fine > 0 %}
+    <div class="fine-alert glass-effect">
+        <div class="alert-icon">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="alert-content">
+            <h3>Outstanding Fine</h3>
+            <p>You have an outstanding fine of <strong>${{ total_fine }}</strong> for overdue books.</p>
+        </div>
+        <button class="btn btn-primary" onclick="payFine()">
+            <i class="fas fa-credit-card"></i>
+            Pay Now
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Return Book Modal -->
+<div class="modal" id="returnBookModal">
+    <div class="modal-overlay" onclick="closeReturnModal()"></div>
+    <div class="modal-content glass-effect">
+        <div class="modal-header">
+            <h2><i class="fas fa-check-circle"></i> Return Book</h2>
+            <button class="modal-close" onclick="closeReturnModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to return this book?</p>
+            <div class="book-return-info" id="returnBookInfo"></div>
+            <div class="form-group">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="confirmReturn">
+                    <span class="checkmark"></span>
+                    I confirm that the book is in good condition
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeReturnModal()">Cancel</button>
+            <button class="btn btn-primary btn-gradient" onclick="confirmReturn()">
+                <i class="fas fa-check"></i>
+                Confirm Return
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentIssueId = null;
+
+// Search functionality
+document.getElementById('tableSearch').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    const rows = document.querySelectorAll('.table-row');
+    
+    rows.forEach(row => {
+        const title = row.querySelector('.book-details h4').textContent.toLowerCase();
+        const author = row.querySelector('.book-details p').textContent.toLowerCase();
+        
+        if (title.includes(searchTerm) || author.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+// Status filter
+document.getElementById('statusFilter').addEventListener('change', function() {
+    const filter = this.value;
+    const rows = document.querySelectorAll('.table-row');
+    
+    rows.forEach(row => {
+        if (!filter) {
+            row.style.display = '';
+        } else if (row.classList.contains(filter)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+function viewBook(bookId) {
+    window.location.href = `/books/${bookId}/`;
+}
+
+function renewBook(issueId) {
+    if (confirm('Do you want to renew this book for another 14 days?')) {
+        // Submit renewal request
+        fetch(`/books/renew/${issueId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Book renewed successfully!', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast(data.message || 'Failed to renew book', 'error');
+            }
+        })
+        .catch(error => {
+            showToast('An error occurred', 'error');
+        });
+    }
+}
+
+function returnBook(issueId, bookTitle) {
+    currentIssueId = issueId;
+    document.getElementById('returnBookInfo').innerHTML = `
+        <div class="book-return-preview">
+            <i class="fas fa-book"></i>
+            <h4>${bookTitle}</h4>
+        </div>
+    `;
+    document.getElementById('returnBookModal').classList.add('active');
+}
+
+function closeReturnModal() {
+    document.getElementById('returnBookModal').classList.remove('active');
+    currentIssueId = null;
+    document.getElementById('confirmReturn').checked = false;
+}
+
+function confirmReturn() {
+    if (!document.getElementById('confirmReturn').checked) {
+        showToast('Please confirm the book condition', 'warning');
+        return;
+    }
+    
+    // Submit return request
+    fetch(`/books/return/${currentIssueId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Book returned successfully!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.message || 'Failed to return book', 'error');
+        }
+    })
+    .catch(error => {
+        showToast('An error occurred', 'error');
+    });
+    
+    closeReturnModal();
+}
+
+function printBooks() {
+    window.print();
+}
+
+function payFine() {
+    window.location.href = '{% url "pay_fine" %}';
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeReturnModal();
+    }
+});
+</script>
+{% endblock %}
