@@ -63,8 +63,9 @@ for book_info in books_data:
         category_name = book_info.pop('category')
         category, _ = Category.objects.get_or_create(name=category_name)
         
-        # Set available = quantity (initially all books are available)
+        # Set available = quantity and default price
         book_info['available'] = book_info['quantity']
+        book_info['price'] = 0.00  # Free library books
         
         # Create book with category object
         Book.objects.create(category=category, **book_info)
