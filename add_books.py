@@ -1,5 +1,6 @@
 import os
 import django
+from datetime import date
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'library_management.settings')
 django.setup()
@@ -63,9 +64,10 @@ for book_info in books_data:
         category_name = book_info.pop('category')
         category, _ = Category.objects.get_or_create(name=category_name)
         
-        # Set available = quantity and default price
+        # Set required fields
         book_info['available'] = book_info['quantity']
         book_info['price'] = 0.00  # Free library books
+        book_info['publication_date'] = date(2020, 1, 1)  # Default publication date
         
         # Create book with category object
         Book.objects.create(category=category, **book_info)
