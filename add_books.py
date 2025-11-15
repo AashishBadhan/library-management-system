@@ -4,7 +4,7 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'library_management.settings')
 django.setup()
 
-from books.models import Book
+from books.models import Book, Category
 
 books_data = [
     {"title": "To Kill a Mockingbird", "author": "Harper Lee", "isbn": "978-0061120084", "category": "Fiction", "quantity": 5, "description": "A classic of modern American literature that has won many hearts."},
@@ -59,7 +59,12 @@ for book_info in books_data:
         print(f"⚠ Skipped: {book_info['title']} (already exists)")
         skipped_count += 1
     else:
-        Book.objects.create(**book_info)
+        # Get or create category
+        category_name = book_info.pop('category')
+        category, _ = Category.objects.get_or_create(name=category_name)
+        
+        # Create book with category object
+        Book.objects.create(category=category, **book_info)
         print(f"✓ Added: {book_info['title']}")
         added_count += 1
 
